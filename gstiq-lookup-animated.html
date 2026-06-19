@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vayana GSTIQ — Vendor Risk Lookup</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+  :root {
+    --teal:     #00D4A0;
+    --teal-dim: #00A880;
+    --navy:     #050D1A;
+    --navy2:    #080F1E;
+    --navy3:    #0C1628;
+    --card:     #0E1A2E;
+    --card2:    #111F35;
+    --border:   rgba(0,212,160,0.15);
+    --border2:  rgba(255,255,255,0.07);
+    --text:     #E8F0FE;
+    --muted:    #8A9BC0;
+    --amber:    #FFB020;
+    --red:      #FF5A5A;
+    --purple:   #7C6FFF;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body:    'Inter', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--navy);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--navy); }
+  ::-webkit-scrollbar-thumb { background: var(--teal-dim); border-radius: 2px; }
+
+  #bg-canvas {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0; opacity: 0.35;
+  }
+
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* ── Nav ── */
+  nav {
+    padding: 0 24px; background: rgba(5,13,26,0.85); backdrop-filter: blur(16px);
+    border-bottom: 0.5px solid var(--border2);
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px; position: relative; z-index: 1;
+  }
+  .nav-logo { display: flex; align-items: center; gap: 12px; }
+  .logo-mark {
+    width: 36px; height: 36px; border-radius: 8px; background: var(--teal);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--navy);
+    box-shadow: 0 0 16px rgba(0,212,160,0.4);
+    animation: pulse-logo 3s ease-in-out infinite;
+  }
+  @keyframes pulse-logo {
+    0%,100% { box-shadow: 0 0 16px rgba(0,212,160,0.4); }
+    50%      { box-shadow: 0 0 28px rgba(0,212,160,0.7); }
+  }
+  .brand-name { font-family: var(--font-display); font-size: 16px; font-weight: 600; }
+  .brand-by { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .nav-status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+  .nav-status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); animation: blink 1.5s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ── Hero / search ── */
+  .hero { padding: 88px 24px 0; text-align: center; position: relative; z-index: 1; }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500;
+    color: var(--teal); background: rgba(0,212,160,0.1); border: 0.5px solid var(--border);
+    padding: 6px 16px; border-radius: 20px; margin-bottom: 24px;
+    animation: fadeSlideDown 0.8s ease both;
+  }
+  .eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); animation: blink 1.5s ease-in-out infinite; }
+
+  h1 {
+    font-family: var(--font-display); font-size: clamp(30px, 4.5vw, 44px); font-weight: 700;
+    line-height: 1.15; letter-spacing: -1px; margin-bottom: 16px;
+    animation: fadeSlideDown 0.8s 0.1s ease both;
+  }
+  h1 .accent { color: var(--teal); }
+  .hero-sub {
+    font-size: 16px; color: var(--muted); max-width: 480px; margin: 0 auto 40px; line-height: 1.7;
+    animation: fadeSlideDown 0.8s 0.2s ease both;
+  }
+
+  @keyframes fadeSlideDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Search card ── */
+  .search-card {
+    background: var(--card); border: 0.5px solid var(--border);
+    border-radius: 16px; padding: 28px; margin-bottom: 28px;
+    box-shadow: 0 0 60px rgba(0,212,160,0.08);
+    animation: fadeSlideDown 0.8s 0.3s ease both;
+    position: relative; overflow: hidden;
+  }
+  .search-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--teal), transparent);
+  }
+  .search-label { font-size: 12px; color: var(--muted); margin-bottom: 12px; display: block; text-align: left; }
+  .search-row { display: flex; gap: 10px; }
+  #gstin-input {
+    flex: 1; background: rgba(255,255,255,0.05); border: 0.5px solid var(--border2);
+    border-radius: 10px; padding: 15px 18px; font-size: 16px; color: var(--text);
+    font-family: var(--font-body); letter-spacing: 0.5px; outline: none;
+    transition: border-color 0.2s;
+  }
+  #gstin-input:focus { border-color: var(--teal); }
+  #gstin-input::placeholder { color: var(--muted); letter-spacing: 0; }
+  #check-btn {
+    padding: 15px 28px; background: var(--teal); color: var(--navy); border: none;
+    border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: all 0.2s; font-family: var(--font-body); white-space: nowrap;
+    box-shadow: 0 0 24px rgba(0,212,160,0.3);
+    display: flex; align-items: center; gap: 8px;
+  }
+  #check-btn:hover:not(:disabled) { background: #00FFB8; box-shadow: 0 0 36px rgba(0,212,160,0.5); transform: translateY(-1px); }
+  #check-btn:disabled { opacity: 0.6; cursor: wait; transform: none; }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 12px; text-align: left; }
+
+  .config-toggle {
+    font-size: 11px; color: var(--muted); cursor: pointer; margin-top: 16px;
+    text-decoration: underline; text-decoration-color: var(--border2);
+    display: inline-block; transition: color 0.2s;
+  }
+  .config-toggle:hover { color: var(--teal); }
+  .config-panel { margin-top: 12px; display: none; text-align: left; }
+  .config-panel.open { display: block; animation: fadeSlideUp 0.3s ease both; }
+  #webhook-url-input {
+    width: 100%; background: rgba(255,255,255,0.05); border: 0.5px solid var(--border2);
+    border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--text);
+    font-family: var(--font-body); outline: none; margin-top: 6px; transition: border-color 0.2s;
+  }
+  #webhook-url-input:focus { border-color: var(--teal); }
+
+  /* ── Quick examples ── */
+  .examples-row {
+    display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 48px;
+    animation: fadeSlideDown 0.8s 0.4s ease both;
+  }
+  .example-chip {
+    font-size: 11px; color: var(--muted); background: var(--card2); border: 0.5px solid var(--border2);
+    padding: 6px 14px; border-radius: 20px; cursor: pointer; transition: all 0.2s;
+    font-family: 'Courier New', monospace;
+  }
+  .example-chip:hover { border-color: var(--teal); color: var(--teal); }
+
+  /* ── Result ── */
+  #result-area { display: none; padding-bottom: 80px; }
+  #result-area.visible { display: block; }
+
+  .result-card {
+    background: var(--card); border: 0.5px solid var(--border2); border-radius: 16px;
+    padding: 32px; margin-bottom: 16px; position: relative; overflow: hidden;
+    animation: fadeSlideUp 0.5s ease both;
+  }
+  .result-card.has-data::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--teal), transparent);
+  }
+
+  .result-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
+  .vendor-name { font-family: var(--font-display); font-size: 20px; font-weight: 600; }
+  .vendor-gstin { font-size: 12px; color: var(--muted); font-family: 'Courier New', monospace; margin-top: 4px; }
+
+  .band-pill { font-size: 12px; font-weight: 700; padding: 6px 16px; border-radius: 20px; white-space: nowrap; }
+  .band-LOW      { background: rgba(0,212,160,0.15); color: var(--teal); }
+  .band-MEDIUM   { background: rgba(255,176,32,0.15); color: var(--amber); }
+  .band-HIGH     { background: rgba(255,90,90,0.15);  color: var(--red); }
+  .band-CRITICAL { background: rgba(255,32,32,0.2);   color: #FF4444; }
+  .band-ERROR    { background: rgba(255,255,255,0.08); color: var(--muted); }
+
+  /* Gauge */
+  .gauge-section { display: flex; align-items: center; gap: 32px; margin-bottom: 28px; flex-wrap: wrap; justify-content: center; }
+  .gauge-canvas-wrap { position: relative; flex-shrink: 0; }
+  .gauge-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%); text-align: center; }
+  .gauge-score-num { font-family: var(--font-display); font-size: 36px; font-weight: 700; display: block; line-height: 1; }
+  .gauge-score-lbl { font-size: 10px; color: var(--muted); margin-top: 4px; letter-spacing: 0.5px; }
+
+  .quick-meta { flex: 1; min-width: 200px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .qm-cell { background: var(--navy3); border: 0.5px solid var(--border2); border-radius: 10px; padding: 12px 14px; }
+  .qm-lbl { font-size: 10px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .qm-val { font-size: 13px; font-weight: 600; }
+
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+  .meta-cell { background: var(--navy3); border: 0.5px solid var(--border2); border-radius: 10px; padding: 13px 15px; transition: border-color 0.2s; }
+  .meta-cell:hover { border-color: var(--border); }
+  .meta-lbl { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+  .meta-val { font-size: 13px; font-weight: 500; }
+
+  .signals-title {
+    font-size: 11px; color: var(--teal); margin-bottom: 12px; text-transform: uppercase;
+    letter-spacing: 1.5px; font-weight: 600; display: flex; align-items: center; gap: 8px;
+  }
+  .signals-title::before { content: ''; width: 20px; height: 1px; background: var(--teal); }
+  .signals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
+  .sig-row {
+    background: var(--navy3); border: 0.5px solid var(--border2); border-radius: 10px;
+    padding: 12px 14px; transition: all 0.2s; cursor: default;
+  }
+  .sig-row:hover { border-color: var(--border); }
+  .sig-row-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .sig-row-label { font-size: 12px; color: var(--muted); }
+  .sig-row-val { font-size: 14px; font-weight: 700; font-family: var(--font-display); }
+  .sig-bar-bg { height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+  .sig-bar-fill { height: 100%; border-radius: 2px; background: var(--teal); transition: width 1s ease; }
+
+  .error-box {
+    background: rgba(255,90,90,0.08); border: 0.5px solid rgba(255,90,90,0.25);
+    border-radius: 10px; padding: 18px; font-size: 13px; color: var(--text); line-height: 1.6;
+  }
+  .error-box strong { color: var(--red); }
+
+  .raw-toggle {
+    font-size: 11px; color: var(--muted); cursor: pointer; text-decoration: underline;
+    text-decoration-color: var(--border2); display: inline-block; margin-top: 16px; transition: color 0.2s;
+  }
+  .raw-toggle:hover { color: var(--teal); }
+  #raw-json {
+    display: none; margin-top: 12px; background: var(--navy); border: 0.5px solid var(--border2);
+    border-radius: 10px; padding: 16px; font-size: 11px; font-family: 'Courier New', monospace;
+    color: var(--muted); overflow-x: auto; white-space: pre-wrap; word-break: break-all;
+    max-height: 320px; overflow-y: auto;
+  }
+  #raw-json.open { display: block; animation: fadeSlideUp 0.3s ease both; }
+
+  .spinner {
+    display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(5,13,26,0.3);
+    border-top-color: var(--navy); border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Particle pulse on result load */
+  .pulse-ring {
+    position: absolute; border-radius: 50%; border: 1px solid var(--teal);
+    pointer-events: none; opacity: 0;
+  }
+
+  footer {
+    text-align: center; font-size: 11px; color: var(--muted); padding: 24px;
+    border-top: 0.5px solid var(--border2); position: relative; z-index: 1;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<nav>
+  <div class="nav-logo">
+    <div class="logo-mark">VG</div>
+    <div>
+      <div class="brand-name">Vayana GSTIQ</div>
+      <div class="brand-by">Internal prototype</div>
+    </div>
+  </div>
+  <div class="nav-status"><span class="nav-status-dot"></span> Ready</div>
+</nav>
+
+<div class="hero">
+  <div class="hero-eyebrow"><span class="eyebrow-dot"></span> AI-powered GST vendor intelligence</div>
+  <h1>Check a vendor's <span class="accent">real risk</span><br>in seconds</h1>
+  <p class="hero-sub">Enter any GSTIN to run it through the 8-signal scoring engine and get back a full risk breakdown.</p>
+</div>
+
+<div class="wrap">
+  <div class="search-card">
+    <label class="search-label" for="gstin-input">GSTIN</label>
+    <div class="search-row">
+      <input type="text" id="gstin-input" placeholder="e.g. 27AABCA1234B1Z5" maxlength="15" autocomplete="off">
+      <button id="check-btn">
+        <span id="btn-text">Check score</span>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" id="btn-arrow"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="hint">Press enter or click "Check score" to run the lookup against your n8n workflow</div>
+
+    <span class="config-toggle" id="config-toggle">Set webhook URL</span>
+    <div class="config-panel" id="config-panel">
+      <input type="text" id="webhook-url-input" placeholder="https://your-instance.app.n8n.cloud/webhook/check-gstin">
+    </div>
+  </div>
+
+  <div id="result-area">
+    <div class="result-card" id="result-card"></div>
+  </div>
+</div>
+
+<footer>Calls your n8n webhook directly from this page · nothing is stored on a server</footer>
+
+<script>
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
+
+function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+function makeParticle() {
+  return { x: Math.random()*W, y: Math.random()*H, r: Math.random()*1.5+0.3, vx: (Math.random()-0.5)*0.3, vy: (Math.random()-0.5)*0.3, o: Math.random()*0.5+0.1 };
+}
+for (let i=0;i<70;i++) particles.push(makeParticle());
+
+function animParticles() {
+  ctx.clearRect(0,0,W,H);
+  for (const p of particles) {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x<0) p.x=W; if (p.x>W) p.x=0;
+    if (p.y<0) p.y=H; if (p.y>H) p.y=0;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle = `rgba(0,212,160,${p.o})`; ctx.fill();
+  }
+  for (let i=0;i<particles.length;i++) {
+    for (let j=i+1;j<particles.length;j++) {
+      const dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if (dist<120) {
+        ctx.beginPath(); ctx.moveTo(particles[i].x,particles[i].y); ctx.lineTo(particles[j].x,particles[j].y);
+        ctx.strokeStyle = `rgba(0,212,160,${0.06*(1-dist/120)})`; ctx.lineWidth=0.5; ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(animParticles);
+}
+animParticles();
+
+let webhookUrl = '';
+const configToggle = document.getElementById('config-toggle');
+const configPanel = document.getElementById('config-panel');
+const webhookInput = document.getElementById('webhook-url-input');
+const gstinInput = document.getElementById('gstin-input');
+const checkBtn = document.getElementById('check-btn');
+const btnText = document.getElementById('btn-text');
+const btnArrow = document.getElementById('btn-arrow');
+const resultArea = document.getElementById('result-area');
+const resultCard = document.getElementById('result-card');
+
+configToggle.addEventListener('click', () => configPanel.classList.toggle('open'));
+webhookInput.addEventListener('input', () => { webhookUrl = webhookInput.value.trim(); });
+
+document.querySelectorAll('.example-chip').forEach(chip => {
+  chip.addEventListener('click', () => { gstinInput.value = chip.dataset.gstin; gstinInput.focus(); });
+});
+
+function scoreClass(score) {
+  if (score === null || score === undefined) return '';
+  if (score <= 25) return 's-low';
+  if (score <= 55) return 's-med';
+  if (score <= 85) return 's-high';
+  return 's-crit';
+}
+function bandColors(band) {
+  if (band === 'LOW') return { hex: '#00D4A0', lbl: 'LOW RISK' };
+  if (band === 'MEDIUM') return { hex: '#FFB020', lbl: 'MEDIUM RISK' };
+  if (band === 'HIGH') return { hex: '#FF5A5A', lbl: 'HIGH RISK' };
+  if (band === 'CRITICAL') return { hex: '#FF2020', lbl: 'CRITICAL RISK' };
+  return { hex: '#8A9BC0', lbl: 'UNKNOWN' };
+}
+
+function drawGauge(canvasId, score) {
+  const c = document.getElementById(canvasId);
+  if (!c) return;
+  const g = c.getContext('2d');
+  const cx = 110, cy = 120, r = 88;
+  const startAngle = Math.PI, endAngle = 2*Math.PI;
+  const scoreAngle = startAngle + (Math.min(Math.max(score,0),100)/100)*Math.PI;
+
+  g.clearRect(0,0,220,150);
+  g.beginPath(); g.arc(cx,cy,r,startAngle,endAngle);
+  g.strokeStyle = 'rgba(255,255,255,0.06)'; g.lineWidth = 12; g.lineCap='round'; g.stroke();
+
+  const zones = [{from:0,to:0.25,color:'#00D4A0'},{from:0.25,to:0.55,color:'#FFB020'},{from:0.55,to:0.85,color:'#FF5A5A'},{from:0.85,to:1,color:'#FF2020'}];
+  for (const z of zones) {
+    g.beginPath(); g.arc(cx,cy,r,startAngle+z.from*Math.PI,startAngle+z.to*Math.PI);
+    g.strokeStyle=z.color; g.lineWidth=12; g.globalAlpha=0.25; g.stroke(); g.globalAlpha=1;
+  }
+
+  const grad = g.createLinearGradient(cx-r,cy,cx+r,cy);
+  grad.addColorStop(0,'#00D4A0'); grad.addColorStop(0.5,'#FFB020'); grad.addColorStop(1,'#FF5A5A');
+  g.beginPath(); g.arc(cx,cy,r,startAngle,scoreAngle);
+  g.strokeStyle = grad; g.lineWidth = 12; g.lineCap='round'; g.stroke();
+
+  const nx = cx + (r-16)*Math.cos(scoreAngle), ny = cy + (r-16)*Math.sin(scoreAngle);
+  g.beginPath(); g.moveTo(cx,cy); g.lineTo(nx,ny);
+  g.strokeStyle = '#fff'; g.lineWidth = 2; g.lineCap='round'; g.stroke();
+  g.beginPath(); g.arc(cx,cy,4,0,Math.PI*2); g.fillStyle='#fff'; g.fill();
+
+  g.fillStyle = 'rgba(138,155,192,0.7)'; g.font = '9px Inter, sans-serif'; g.textAlign='center';
+  g.fillText('0', cx-r-8, cy+4);
+  g.fillText('100', cx+r+10, cy+4);
+}
+
+function animateGauge(canvasId, numId, target) {
+  const numEl = document.getElementById(numId);
+  let current = 0;
+  function step() {
+    current = Math.min(current + Math.max(target/30,1), target);
+    drawGauge(canvasId, current);
+    numEl.textContent = Math.round(current);
+    if (current < target) requestAnimationFrame(step);
+  }
+  step();
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function signalRow(label, val, maxAbs) {
+  const num = (val === null || val === undefined) ? 0 : val;
+  const pct = maxAbs ? Math.min(Math.abs(num)/maxAbs*100, 100) : 0;
+  return `
+    <div class="sig-row">
+      <div class="sig-row-top">
+        <span class="sig-row-label">${label}</span>
+        <span class="sig-row-val">${val ?? '—'}</span>
+      </div>
+      <div class="sig-bar-bg"><div class="sig-bar-fill" style="width:0%" data-width="${pct}%"></div></div>
+    </div>`;
+}
+
+function renderResult(data) {
+  resultArea.classList.add('visible');
+  const isErrorStatus = ['INVALID_GSTIN','API_ERROR','RATE_LIMITED'].includes(data.status);
+
+  if (isErrorStatus) {
+    resultCard.className = 'result-card';
+    resultCard.innerHTML = `
+      <div class="result-top">
+        <div>
+          <div class="vendor-name">${escapeHtml(data.legal_name || data.gstin || 'Unknown')}</div>
+          <div class="vendor-gstin">${escapeHtml(data.gstin || '')}</div>
+        </div>
+        <span class="band-pill band-ERROR">${escapeHtml(data.status || 'ERROR')}</span>
+      </div>
+      <div class="error-box">
+        <strong>${escapeHtml(data.status)}</strong> — ${escapeHtml(data.error_detail || 'No further detail returned.')}
+      </div>
+      <div class="raw-toggle" id="raw-toggle">View raw response</div>
+      <div id="raw-json"></div>
+    `;
+  } else {
+    const score = data.risk_score ?? 0;
+    const band = data.risk_band || 'UNKNOWN';
+    const colors = bandColors(band);
+
+    resultCard.className = 'result-card has-data';
+    resultCard.innerHTML = `
+      <div class="result-top">
+        <div>
+          <div class="vendor-name">${escapeHtml(data.legal_name || data.gstin)}</div>
+          <div class="vendor-gstin">${escapeHtml(data.gstin)}</div>
+        </div>
+        <span class="band-pill band-${escapeHtml(band)}">${escapeHtml(band)}</span>
+      </div>
+
+      <div class="gauge-section">
+        <div class="gauge-canvas-wrap">
+          <canvas id="result-gauge" width="220" height="150"></canvas>
+          <div class="gauge-score">
+            <span class="gauge-score-num" id="result-gauge-num" style="color:${colors.hex}">0</span>
+            <div class="gauge-score-lbl">${colors.lbl}</div>
+          </div>
+        </div>
+        <div class="quick-meta">
+          <div class="qm-cell"><div class="qm-lbl">Status</div><div class="qm-val">${escapeHtml(data.status || '—')}</div></div>
+          <div class="qm-cell"><div class="qm-lbl">Type</div><div class="qm-val">${escapeHtml(data.taxpayer_type || '—')}</div></div>
+          <div class="qm-cell"><div class="qm-lbl">Trend</div><div class="qm-val">${escapeHtml(data.compliance_trend || '—')}</div></div>
+          <div class="qm-cell"><div class="qm-lbl">Category</div><div class="qm-val">${escapeHtml(data.compliance_category || '—')}</div></div>
+        </div>
+      </div>
+
+      <div class="meta-grid">
+        <div class="meta-cell"><div class="meta-lbl">Latest GSTR-3B</div><div class="meta-val">${escapeHtml(data.latest_gstr3b || '—')}</div></div>
+        <div class="meta-cell"><div class="meta-lbl">Latest GSTR-1</div><div class="meta-val">${escapeHtml(data.latest_gstr1 || '—')}</div></div>
+        <div class="meta-cell"><div class="meta-lbl">GSTR-3B filed (36mo)</div><div class="meta-val">${data.gstr3b_filed_count ?? '—'}</div></div>
+        <div class="meta-cell"><div class="meta-lbl">GSTR-1 filed (36mo)</div><div class="meta-val">${data.gstr1_filed_count ?? '—'}</div></div>
+      </div>
+
+      <div class="signals-title">Signal breakdown (S1–S8)</div>
+      <div class="signals-grid">
+        ${signalRow('S1 · Registration status', data.s1_status_pts, 40)}
+        ${signalRow('S2 · Filing gap', data.s2_gap_pts, 25)}
+        ${signalRow('S3 · Compliance category', data.s3_compliance_pts, 20)}
+        ${signalRow('S4 · Trajectory', data.s4_trajectory_pts, 10)}
+        ${signalRow('S5 · Filing discipline', data.s5_discipline_pts, 12)}
+        ${signalRow('S6 · Supply divergence', data.s6_divergence_pts, 5)}
+        ${signalRow('S7 · E-invoice', data.s7_einvoice_pts, 5)}
+        ${signalRow('S8 · New entity', data.s8_newentity_pts, 8)}
+      </div>
+
+      <div class="raw-toggle" id="raw-toggle">View raw response</div>
+      <div id="raw-json"></div>
+    `;
+
+    setTimeout(() => animateGauge('result-gauge', 'result-gauge-num', score), 150);
+  }
+
+  document.getElementById('raw-json').textContent = JSON.stringify(data, null, 2);
+  document.getElementById('raw-toggle').addEventListener('click', () => {
+    document.getElementById('raw-json').classList.toggle('open');
+  });
+
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.sig-bar-fill[data-width]').forEach((el, i) => {
+      setTimeout(() => { el.style.width = el.dataset.width; }, 200 + i*60);
+    });
+  });
+
+  resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function runLookup() {
+  const gstin = gstinInput.value.trim().toUpperCase();
+  if (!gstin) { gstinInput.focus(); return; }
+  if (!webhookUrl) {
+    configPanel.classList.add('open');
+    webhookInput.focus();
+    return;
+  }
+
+  checkBtn.disabled = true;
+  btnText.textContent = 'Checking...';
+  btnArrow.style.display = 'none';
+  const spinner = document.createElement('span');
+  spinner.className = 'spinner';
+  spinner.id = 'btn-spinner';
+  checkBtn.insertBefore(spinner, btnText);
+
+  try {
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gstin })
+    });
+    if (!res.ok) throw new Error(`Webhook returned HTTP ${res.status}`);
+    const data = await res.json();
+    renderResult(Array.isArray(data) ? data[0] : data);
+  } catch (err) {
+    resultArea.classList.add('visible');
+    resultCard.className = 'result-card';
+    resultCard.innerHTML = `
+      <div class="error-box">
+        <strong>Request failed</strong> — ${escapeHtml(err.message)}.
+        Check that the webhook URL is correct and the n8n workflow is active.
+      </div>`;
+    resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } finally {
+    checkBtn.disabled = false;
+    btnText.textContent = 'Check score';
+    btnArrow.style.display = '';
+    const sp = document.getElementById('btn-spinner');
+    if (sp) sp.remove();
+  }
+}
+
+checkBtn.addEventListener('click', runLookup);
+gstinInput.addEventListener('keydown', e => { if (e.key === 'Enter') runLookup(); });
+</script>
+</body>
+</html>
